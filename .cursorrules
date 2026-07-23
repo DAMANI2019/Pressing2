@@ -1,0 +1,26 @@
+# Pressing Multi-Tenant — Consignes techniques (Flutter)
+
+## Stack
+- Flutter (SDK récent) + Dart strict
+- Supabase (Auth, PostgreSQL, Storage, RLS)
+- go_router, provider, image_picker, url_launcher
+- Code et UI en français
+
+## Architecture multi-tenant
+- Filtrer par `pressing_id` côté app
+- Isolation réelle via RLS Supabase
+- Lire `pressing_id` et `role` depuis `pressing_utilisateurs`
+
+## Rôles
+- `super_admin` / `patron` / `employe`
+
+## Abonnement
+- `statut_abonnement === actif` et `date_expiration >= aujourd’hui`
+- Sinon écran `/abonnement-expire`
+
+## Photos
+- Bucket `photos-habits`
+- Chemin `{pressing_id}/{prestation_id}/{uuid}.jpg`
+
+## WhatsApp
+- Deep link uniquement (pas d’API Business payante)

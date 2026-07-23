@@ -88,6 +88,12 @@ class Pressing {
     this.telephone,
     this.email,
     this.logoUrl,
+    this.factureRaisonSociale,
+    this.factureAdresse,
+    this.factureTelephone,
+    this.factureEmail,
+    this.facturePiedPage,
+    this.factureLogoUrl,
     this.gerantNom,
     this.codePin,
     required this.statutAbonnement,
@@ -101,6 +107,12 @@ class Pressing {
   final String? telephone;
   final String? email;
   final String? logoUrl;
+  final String? factureRaisonSociale;
+  final String? factureAdresse;
+  final String? factureTelephone;
+  final String? factureEmail;
+  final String? facturePiedPage;
+  final String? factureLogoUrl;
   final String? gerantNom;
   final String? codePin;
   final StatutAbonnement statutAbonnement;
@@ -115,6 +127,12 @@ class Pressing {
       telephone: json['telephone'] as String?,
       email: json['email'] as String?,
       logoUrl: json['logo_url'] as String?,
+      factureRaisonSociale: json['facture_raison_sociale'] as String?,
+      factureAdresse: json['facture_adresse'] as String?,
+      factureTelephone: json['facture_telephone'] as String?,
+      factureEmail: json['facture_email'] as String?,
+      facturePiedPage: json['facture_pied_page'] as String?,
+      factureLogoUrl: json['facture_logo_url'] as String?,
       gerantNom: json['gerant_nom'] as String?,
       codePin: json['code_pin'] as String?,
       statutAbonnement: statutAbonnementFromDb(
@@ -124,6 +142,33 @@ class Pressing {
       dateExpiration: json['date_expiration'] as String? ?? '',
     );
   }
+}
+
+class CatalogueItem {
+  CatalogueItem({
+    required this.id,
+    required this.pressingId,
+    required this.libelle,
+    required this.categorie,
+    required this.prixDefaut,
+    required this.actif,
+  });
+
+  final String id;
+  final String pressingId;
+  final String libelle;
+  final String categorie;
+  final double prixDefaut;
+  final bool actif;
+
+  factory CatalogueItem.fromJson(Map<String, dynamic> json) => CatalogueItem(
+        id: json['id'] as String,
+        pressingId: json['pressing_id'] as String,
+        libelle: json['libelle'] as String? ?? '',
+        categorie: json['categorie'] as String? ?? 'autre',
+        prixDefaut: (json['prix_defaut'] as num?)?.toDouble() ?? 0,
+        actif: json['actif'] as bool? ?? true,
+      );
 }
 
 class Utilisateur {

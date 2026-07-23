@@ -1,12 +1,15 @@
 import 'dart:typed_data';
 
 import 'package:flutter/material.dart';
+import 'package:go_router/go_router.dart';
 import 'package:image_picker/image_picker.dart';
 import 'package:provider/provider.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 
-import '../../constants/app_constants.dart';
+import '../../models/models.dart';
 import '../../providers/auth_provider.dart';
+import '../../services/catalogue_service.dart';
+import '../../services/facture_pdf_service.dart';
 import '../../services/prestations_service.dart';
 import '../../services/whatsapp_service.dart';
 import '../../utils/format.dart';
@@ -25,6 +28,29 @@ class _NouvellePrestationScreenState extends State<NouvellePrestationScreen> {
   final _articles = <ArticleDraft>[];
   bool _envoi = false;
   final _picker = ImagePicker();
+  final _catalogue = <CatalogueItem>[];
+  bool _catalogueCharge = false;
+
+  @override
+  void initState() {
+    super.initState();
+    WidgetsBinding.instance.addPostFrameCallback((_) => _chargerCatalogue());
+  }
+
+  Future<void> _chargerCatalogue() async {
+    final pressingId = context.read<AuthProvider>().profil?.pressingId;
+    if (pressingId == null) return;
+    try {
+      final items = await CatalogueService(Supabase.instance.client)
+          .lister(pressingId, actifsSeulement: true);
+      if (mounted) setState(() {
+        _catalogue..clear()..addAll(items);
+        _catalogueCharge = true;
+      });
+    } catch (e) {
+      if (mounted) ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text('Catalogue : $e')));
+    }
+  }
 
   @override
   void dispose() {
@@ -40,9 +66,13 @@ class _NouvellePrestationScreenState extends State<NouvellePrestationScreen> {
       );
 
   Future<void> _ajouterArticle() async {
-    String type = designationsHabits.first.libelle;
+    if (_catalogue.isEmpty) {
+      ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('Le catalogue est vide.')));
+      return;
+    }
+    String type = _catalogue.first.libelle;
     final prixCtrl = TextEditingController(
-      text: designationsHabits.first.prixDefaut.toString(),
+      text: _catalogue.first.prixDefaut.toString(),
     );
     final qteCtrl = TextEditingController(text: '1');
     final descCtrl = TextEditingController();
@@ -74,7 +104,7 @@ class _NouvellePrestationScreenState extends State<NouvellePrestationScreen> {
                     const SizedBox(height: 12),
                     DropdownButtonFormField<String>(
                       initialValue: type,
-                      items: designationsHabits
+                      items: _catalogue
                           .map(
                             (d) => DropdownMenuItem(
                               value: d.libelle,
@@ -85,7 +115,7 @@ class _NouvellePrestationScreenState extends State<NouvellePrestationScreen> {
                       onChanged: (v) {
                         if (v == null) return;
                         type = v;
-                        final def = designationsHabits.firstWhere((d) => d.libelle == v);
+                        final def = _catalogue.firstWhere((d) => d.libelle == v);
                         prixCtrl.text = def.prixDefaut.toString();
                         setModal(() {});
                       },
@@ -218,6 +248,27 @@ class _NouvellePrestationScreenState extends State<NouvellePrestationScreen> {
         _notes.clear();
         _articles.clear();
       });
+      if (!mounted) return;
+      final action = await showDialog<String>(
+        context: context,
+        builder: (ctx) => AlertDialog(
+          title: const Text('Prestation créée'),
+          content: const Text('Souhaitez-vous partager le ticket PDF ou consulter les opérations ?'),
+          actions: [
+            TextButton(onPressed: () => Navigator.pop(ctx), child: const Text('Fermer')),
+            TextButton(onPressed: () => Navigator.pop(ctx, 'operations'), child: const Text('Opérations')),
+            FilledButton(onPressed: () => Navigator.pop(ctx, 'pdf'), child: const Text('Partager PDF')),
+          ],
+        ),
+      );
+      if (action == 'pdf' && auth.pressing != null) {
+        final pdf = await FacturePdfService().buildPdf(
+          pressing: auth.pressing!, prestation: prestation, articles: articles,
+        );
+        await FacturePdfService().sharePdf(pdf, prestation.numeroTicket);
+      } else if (action == 'operations' && mounted) {
+        context.go('/employe/operations');
+      }
     } catch (e) {
       if (!mounted) return;
       ScaffoldMessenger.of(context).showSnackBar(
@@ -236,6 +287,11 @@ class _NouvellePrestationScreenState extends State<NouvellePrestationScreen> {
       appBar: AppBar(
         title: const Text('Nouvelle prestation'),
         actions: [
+          IconButton(
+            tooltip: 'Opérations',
+            onPressed: () => context.go('/employe/operations'),
+            icon: const Icon(Icons.list_alt),
+          ),
           IconButton(
             onPressed: () => auth.seDeconnecter(),
             icon: const Icon(Icons.logout),
@@ -273,7 +329,7 @@ class _NouvellePrestationScreenState extends State<NouvellePrestationScreen> {
                 child: Text('Articles', style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold)),
               ),
               TextButton.icon(
-                onPressed: _ajouterArticle,
+              onPressed: _catalogueCharge ? _ajouterArticle : null,
                 icon: const Icon(Icons.add),
                 label: const Text('Ajouter'),
               ),

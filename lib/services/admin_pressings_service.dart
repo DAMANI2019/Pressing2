@@ -151,4 +151,7 @@ class AdminPressingsService {
         .single();
     return Pressing.fromJson(Map<String, dynamic>.from(data));
   }
+
+  Future<void> supprimer(String pressingId) =>
+      _client.from('pressings').delete().eq('id', pressingId);
 }

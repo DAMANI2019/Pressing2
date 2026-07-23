@@ -112,4 +112,25 @@ class PrestationsService {
         .map((e) => ArticlePrestation.fromJson(Map<String, dynamic>.from(e as Map)))
         .toList();
   }
+
+  Future<List<Prestation>> lister({
+    required String pressingId,
+    required IntervalleDates intervalle,
+  }) async {
+    final data = await _client
+        .from('prestations')
+        .select('*, articles_prestation(*)')
+        .eq('pressing_id', pressingId)
+        .gte('date_depot', intervalle.debut.toIso8601String())
+        .lte('date_depot', intervalle.fin.toIso8601String())
+        .order('date_depot', ascending: false);
+    return (data as List)
+        .map((e) => Prestation.fromJson(Map<String, dynamic>.from(e as Map)))
+        .toList();
+  }
+
+  Future<void> marquerLivre(String prestationId) => _client
+      .from('prestations')
+      .update({'statut': 'livre', 'date_livraison': DateTime.now().toIso8601String()})
+      .eq('id', prestationId);
 }

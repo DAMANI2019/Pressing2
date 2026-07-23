@@ -133,6 +133,27 @@ class _AdminDashboardScreenState extends State<AdminDashboardScreen> {
     }
   }
 
+  Future<void> _supprimerPressing(Pressing pressing) async {
+    final confirme = await showDialog<bool>(
+      context: context,
+      builder: (ctx) => AlertDialog(
+        title: const Text('Supprimer ce pressing ?'),
+        content: Text('« ${pressing.nom} » et ses données associées seront supprimés si les contraintes de la base le permettent.'),
+        actions: [
+          TextButton(onPressed: () => Navigator.pop(ctx, false), child: const Text('Annuler')),
+          FilledButton(onPressed: () => Navigator.pop(ctx, true), child: const Text('Supprimer')),
+        ],
+      ),
+    );
+    if (confirme != true) return;
+    try {
+      await _service.supprimer(pressing.id);
+      await _charger();
+    } catch (e) {
+      if (mounted) ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text('Suppression impossible : $e')));
+    }
+  }
+
   @override
   Widget build(BuildContext context) {
     final auth = context.watch<AuthProvider>();
@@ -204,6 +225,9 @@ class _AdminDashboardScreenState extends State<AdminDashboardScreen> {
                                     'Bonjour, message concernant votre pressing ${p.nom}.',
                                   );
                                   return;
+                                } else if (v == 'supprimer') {
+                                  await _supprimerPressing(p);
+                                  return;
                                 }
                                 await _charger();
                               } catch (e) {
@@ -220,6 +244,7 @@ class _AdminDashboardScreenState extends State<AdminDashboardScreen> {
                               PopupMenuItem(value: 'suspendre', child: Text('Suspendre')),
                               PopupMenuItem(value: 'activer', child: Text('Réactiver')),
                               PopupMenuItem(value: 'whatsapp', child: Text('WhatsApp')),
+                              PopupMenuItem(value: 'supprimer', child: Text('Supprimer')),
                             ],
                           ),
                         ),

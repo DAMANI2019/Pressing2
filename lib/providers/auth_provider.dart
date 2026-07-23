@@ -2,6 +2,7 @@ import 'package:flutter/foundation.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 
 import '../models/models.dart';
+import '../services/users_service.dart';
 
 class AuthProvider extends ChangeNotifier {
   final _client = Supabase.instance.client;
@@ -13,7 +14,10 @@ class AuthProvider extends ChangeNotifier {
   bool abonnementActif = false;
   String? raisonBlocage;
 
-  bool get estConnecte => session != null && profil != null;
+  bool get estConnecte => session != null;
+  bool get besoinChoixPressing =>
+      estConnecte && (profil == null ||
+          (profil!.role != RoleUtilisateur.superAdmin && profil!.pressingId == null));
 
   Future<void> initialiser() async {
     _client.auth.onAuthStateChange.listen((data) async {
@@ -152,5 +156,19 @@ class AuthProvider extends ChangeNotifier {
   Future<void> rafraichir() async {
     final id = session?.user.id;
     if (id != null) await _chargerProfilEtAbonnement(id);
+  }
+
+  Future<void> rattacherAuPressing({
+    required String pressingId,
+    required String nomComplet,
+  }) async {
+    final userId = session?.user.id;
+    if (userId == null) throw StateError('Session introuvable.');
+    await UsersService(_client).rattacherPressing(
+      userId: userId,
+      pressingId: pressingId,
+      nomComplet: nomComplet,
+    );
+    await _chargerProfilEtAbonnement(userId);
   }
 }

@@ -1,9 +1,11 @@
 import 'package:flutter/material.dart';
+import 'package:go_router/go_router.dart';
 import 'package:provider/provider.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 
 import '../../providers/auth_provider.dart';
 import '../../services/dashboard_service.dart';
+import '../../services/facture_pdf_service.dart';
 import '../../utils/format.dart';
 
 class PatronDashboardScreen extends StatefulWidget {
@@ -65,6 +67,15 @@ class _PatronDashboardScreenState extends State<PatronDashboardScreen> {
     }
   }
 
+  Future<void> _partagerPdf(p) async {
+    final pressing = context.read<AuthProvider>().pressing;
+    if (pressing == null) return;
+    final bytes = await FacturePdfService().buildPdf(
+      pressing: pressing, prestation: p, articles: p.articles,
+    );
+    await FacturePdfService().sharePdf(bytes, p.numeroTicket);
+  }
+
   @override
   Widget build(BuildContext context) {
     final auth = context.watch<AuthProvider>();
@@ -74,6 +85,16 @@ class _PatronDashboardScreenState extends State<PatronDashboardScreen> {
       appBar: AppBar(
         title: Text(auth.pressing?.nom ?? 'Tableau de bord'),
         actions: [
+          PopupMenuButton<String>(
+            icon: const Icon(Icons.settings),
+            onSelected: (route) => context.go(route),
+            itemBuilder: (_) => const [
+              PopupMenuItem(value: '/patron/utilisateurs', child: Text('Utilisateurs')),
+              PopupMenuItem(value: '/patron/catalogue', child: Text('Catalogue')),
+              PopupMenuItem(value: '/patron/facture', child: Text('Factures')),
+              PopupMenuItem(value: '/patron/operations', child: Text('Opérations')),
+            ],
+          ),
           IconButton(onPressed: _charger, icon: const Icon(Icons.refresh)),
           IconButton(
             onPressed: () => auth.seDeconnecter(),
@@ -135,12 +156,19 @@ class _PatronDashboardScreenState extends State<PatronDashboardScreen> {
                         '${formaterDateCourt(p.dateDepot)}',
                       ),
                       isThreeLine: true,
-                      trailing: suivant == null
-                          ? null
-                          : TextButton(
+                      trailing: Wrap(
+                        children: [
+                          IconButton(
+                            icon: const Icon(Icons.picture_as_pdf_outlined),
+                            onPressed: () => _partagerPdf(p),
+                          ),
+                          if (suivant != null)
+                            TextButton(
                               onPressed: () => _avancerStatut(p.id, p.statut),
                               child: Text('→ ${_service.libelleStatut(suivant)}'),
                             ),
+                        ],
+                      ),
                     ),
                   );
                 },

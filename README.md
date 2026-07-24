@@ -4,38 +4,31 @@ Application multi-tenant de gestion de pressing — **Flutter** + **Supabase**.
 
 ## Fonctionnalités
 
-- **Employé** : création de prestations, photos, envoi facture WhatsApp
-- **Patron** : tableau de bord CA / prestations, changement de statut
-- **Super Admin** : CRUD pressings, prolonger / suspendre abonnements
-- Garde-fou abonnement (`actif` + `date_expiration`)
-- Isolation multi-tenant via `pressing_id` + RLS Supabase
+- **Employé / utilisateur** : prestations, catalogue, opérations, marquer livré, facture PDF
+- **Patron (admin pressing)** : stats période, utilisateurs (admin/utilisateur), catalogue, entête facture, PDF
+- **Super Admin** : ajouter / prolonger / suspendre / **supprimer** pressings
+- **1ʳᵉ connexion** : choix du pressing si non rattaché
+- Facture PDF (aperçu / partage / envoi)
+- Garde-fou abonnement + WhatsApp
 
-## Stack
+## Comptes démo
 
-- Flutter 3.38+ / Dart 3.10+
-- `supabase_flutter`, `go_router`, `provider`, `image_picker`, `url_launcher`
+| Rôle | Email | Mot de passe |
+|------|-------|--------------|
+| Super Admin | `admin@pressing.app` | `PressingAdmin2026!` |
+| Patron | `patron@pressing.app` | `PressingPatron2026!` |
+| Employé | `employe@pressing.app` | `PressingEmploye2026!` |
 
 ## Configuration
 
-1. Copier `.env.example` vers `.env` et renseigner :
-   - `SUPABASE_URL`
-   - `SUPABASE_ANON_KEY`
-   - `TELEPHONE_ADMIN` (WhatsApp renouvellement)
-2. Appliquer le SQL dans `supabase/schema_pressing.sql` sur votre projet Supabase.
-3. Bucket Storage : `photos-habits`
+1. `.env` : `SUPABASE_URL`, `SUPABASE_ANON_KEY`, `TELEPHONE_ADMIN`
+2. SQL : `supabase/schema_pressing.sql` puis `supabase/migration_features.sql`
+3. Auth Supabase : désactiver la confirmation email pour la création d’utilisateurs par le patron
 
 ```bash
 flutter pub get
 flutter run
 ```
-
-## Rôles (table `pressing_utilisateurs`)
-
-| Rôle          | Accès                          |
-|---------------|--------------------------------|
-| `super_admin` | Gestion globale des pressings  |
-| `patron`      | Stats / CA de son pressing     |
-| `employe`     | Réception & WhatsApp           |
 
 ## Repo
 

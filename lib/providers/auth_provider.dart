@@ -171,4 +171,17 @@ class AuthProvider extends ChangeNotifier {
     );
     await _chargerProfilEtAbonnement(userId);
   }
+
+  Future<void> creerMonPressing({
+    required String nomPressing,
+    required String nomComplet,
+  }) async {
+    final userId = session?.user.id;
+    if (userId == null) throw StateError('Session introuvable.');
+    await UsersService(_client).creerMonEtablissement(
+      nomPressing: nomPressing,
+      nomComplet: nomComplet,
+    );
+    await _chargerProfilEtAbonnement(userId);
+  }
 }

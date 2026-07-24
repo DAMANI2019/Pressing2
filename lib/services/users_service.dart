@@ -67,11 +67,36 @@ class UsersService {
     required String userId,
     required String pressingId,
     required String nomComplet,
-  }) => _client.from('pressing_utilisateurs').upsert({
+  }) =>
+      _client.from('pressing_utilisateurs').upsert({
         'id': userId,
         'pressing_id': pressingId,
         'nom_complet': nomComplet.trim(),
         'role': 'employe',
         'actif': true,
       });
+
+  /// 1ʳᵉ connexion patron : crée le pressing avec le nom saisi.
+  Future<String> creerMonEtablissement({
+    required String nomPressing,
+    required String nomComplet,
+  }) async {
+    final id = await _client.rpc(
+      'pressing_creer_etablissement',
+      params: {
+        'p_nom': nomPressing.trim(),
+        'p_nom_complet': nomComplet.trim(),
+      },
+    );
+    return id as String;
+  }
+
+  Future<void> renommerPressing({
+    required String pressingId,
+    required String nom,
+  }) =>
+      _client.from('pressings').update({
+        'nom': nom.trim(),
+        'facture_raison_sociale': nom.trim(),
+      }).eq('id', pressingId);
 }

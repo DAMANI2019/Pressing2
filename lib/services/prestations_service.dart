@@ -10,18 +10,25 @@ import 'storage_service.dart';
 class ArticleDraft {
   ArticleDraft({
     required this.typeHabit,
+    required this.travail,
     required this.prixUnitaire,
     this.quantite = 1,
     this.description,
     this.defauts,
+    this.categorie,
+    this.catalogueId,
     this.photos = const [],
   });
 
   String typeHabit;
+  /// Ex. lavage à sec, repassage, autre…
+  String travail;
   double prixUnitaire;
   int quantite;
   String? description;
   String? defauts;
+  String? categorie;
+  String? catalogueId;
   List<Uint8List> photos;
 }
 
@@ -79,9 +86,11 @@ class PrestationsService {
       lignes.add({
         'prestation_id': prestationId,
         'pressing_id': pressingId,
-        'type_habit': article.typeHabit,
+        'type_habit': '${article.typeHabit} — ${article.travail}',
         'description': article.description,
         'defauts': article.defauts,
+        'categorie': article.categorie ?? article.travail,
+        'catalogue_id': article.catalogueId,
         'photo_url': photoUrl,
         'prix_unitaire': article.prixUnitaire,
         'quantite': article.quantite,

@@ -67,13 +67,17 @@ class _NouvellePrestationScreenState extends State<NouvellePrestationScreen> {
 
   Future<void> _ajouterArticle() async {
     if (_catalogue.isEmpty) {
-      ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('Le catalogue est vide.')));
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('Le catalogue est vide. Demandez au patron d’ajouter des travaux.')),
+      );
       return;
     }
-    String type = _catalogue.first.libelle;
-    final prixCtrl = TextEditingController(
-      text: _catalogue.first.prixDefaut.toString(),
-    );
+
+    final habitCtrl = TextEditingController(text: 'Chemise');
+    final autreTravailCtrl = TextEditingController();
+    CatalogueItem? travailChoisi = _catalogue.first;
+    var modeAutre = false;
+    final prixCtrl = TextEditingController(text: _catalogue.first.prixDefaut.toString());
     final qteCtrl = TextEditingController(text: '1');
     final descCtrl = TextEditingController();
     final defautsCtrl = TextEditingController();
@@ -98,29 +102,60 @@ class _NouvellePrestationScreenState extends State<NouvellePrestationScreen> {
                   mainAxisSize: MainAxisSize.min,
                   children: [
                     const Text(
-                      'Nouvel article',
+                      'Article & travail',
                       style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
                     ),
                     const SizedBox(height: 12),
+                    TextField(
+                      controller: habitCtrl,
+                      decoration: const InputDecoration(
+                        labelText: 'Article / habit',
+                        hintText: 'Ex. Chemise, Pantalon, Robe…',
+                      ),
+                    ),
+                    const SizedBox(height: 8),
                     DropdownButtonFormField<String>(
-                      initialValue: type,
-                      items: _catalogue
-                          .map(
-                            (d) => DropdownMenuItem(
-                              value: d.libelle,
-                              child: Text(d.libelle),
+                      initialValue: modeAutre ? '__autre__' : travailChoisi?.id,
+                      decoration: const InputDecoration(
+                        labelText: 'Travail effectué',
+                      ),
+                      items: [
+                        ..._catalogue.map(
+                          (d) => DropdownMenuItem(
+                            value: d.id,
+                            child: Text(
+                              '${d.libelle} (${CatalogueService.libelleCategorie(d.categorie)})',
                             ),
-                          )
-                          .toList(),
+                          ),
+                        ),
+                        const DropdownMenuItem(
+                          value: '__autre__',
+                          child: Text('Autre travail (saisie libre)'),
+                        ),
+                      ],
                       onChanged: (v) {
                         if (v == null) return;
-                        type = v;
-                        final def = _catalogue.firstWhere((d) => d.libelle == v);
-                        prixCtrl.text = def.prixDefaut.toString();
+                        if (v == '__autre__') {
+                          modeAutre = true;
+                          travailChoisi = null;
+                        } else {
+                          modeAutre = false;
+                          travailChoisi = _catalogue.firstWhere((d) => d.id == v);
+                          prixCtrl.text = travailChoisi!.prixDefaut.toString();
+                        }
                         setModal(() {});
                       },
-                      decoration: const InputDecoration(labelText: 'Type d’habit'),
                     ),
+                    if (modeAutre) ...[
+                      const SizedBox(height: 8),
+                      TextField(
+                        controller: autreTravailCtrl,
+                        decoration: const InputDecoration(
+                          labelText: 'Précisez le travail',
+                          hintText: 'Ex. Retouche, détachage…',
+                        ),
+                      ),
+                    ],
                     const SizedBox(height: 8),
                     TextField(
                       controller: prixCtrl,
@@ -177,10 +212,17 @@ class _NouvellePrestationScreenState extends State<NouvellePrestationScreen> {
     );
 
     if (ok == true) {
+      final travail = modeAutre
+          ? (autreTravailCtrl.text.trim().isEmpty ? 'Autre travail' : autreTravailCtrl.text.trim())
+          : (travailChoisi?.libelle ?? 'Travail');
+      final categorie = modeAutre ? 'autre' : travailChoisi?.categorie;
       setState(() {
         _articles.add(
           ArticleDraft(
-            typeHabit: type,
+            typeHabit: habitCtrl.text.trim().isEmpty ? 'Article' : habitCtrl.text.trim(),
+            travail: travail,
+            categorie: categorie,
+            catalogueId: modeAutre ? null : travailChoisi?.id,
             prixUnitaire: double.tryParse(prixCtrl.text) ?? 0,
             quantite: int.tryParse(qteCtrl.text) ?? 1,
             description: descCtrl.text.trim().isEmpty ? null : descCtrl.text.trim(),
@@ -191,6 +233,8 @@ class _NouvellePrestationScreenState extends State<NouvellePrestationScreen> {
       });
     }
 
+    habitCtrl.dispose();
+    autreTravailCtrl.dispose();
     prixCtrl.dispose();
     qteCtrl.dispose();
     descCtrl.dispose();
@@ -345,7 +389,7 @@ class _NouvellePrestationScreenState extends State<NouvellePrestationScreen> {
               final a = e.value;
               return Card(
                 child: ListTile(
-                  title: Text('${a.typeHabit} × ${a.quantite}'),
+                  title: Text('${a.typeHabit} — ${a.travail} × ${a.quantite}'),
                   subtitle: Text(
                     '${formaterMontant(a.prixUnitaire * a.quantite)}'
                     '${a.photos.isEmpty ? '' : ' · ${a.photos.length} photo(s)'}',
